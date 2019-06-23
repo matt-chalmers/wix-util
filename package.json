@@ -1,0 +1,30 @@
+{
+  "name": "wix-util",
+  "version": "1.0.0",
+  "description": "Utilities to extend the capabilities of Wix web sites",
+  "main": "index.js",
+  "scripts": {
+    "build": "babel src -d dist",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/matt-chalmers/wix-util.git"
+  },
+  "author": "Matt Chalmers",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/matt-chalmers/wix-util/issues"
+  },
+  "homepage": "https://github.com/matt-chalmers/wix-util#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/cli": "^7.4.4",
+    "@babel/core": "^7.4.5",
+    "@babel/node": "^7.4.5",
+    "@babel/preset-env": "^7.4.5",
+    "@babel/register": "^7.4.4",
+    "babel-jest": "^24.8.0",
+    "jest": "^24.8.0"
+  }
+}
