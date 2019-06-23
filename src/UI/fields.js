@@ -105,14 +105,14 @@ export class FieldsHandler {
         Object.keys(this.PAGE_FIELDS).forEach(
             (dataset_id, idx) => {
                 $w('#' + dataset_id).onReady(
-                    () => FieldsHandler.loadDataset(dataset_id)
+                    () => this.loadDataset(dataset_id)
                 )
             }
         )
     }
 
     static initPage(page_fields) {
-        FieldsHandler.PAGE_FIELDS = page_fields;
+        this.PAGE_FIELDS = page_fields;
         this._registerElementHandlers();
         this._registerLoadHandlers();
     }
