@@ -105,7 +105,7 @@ export class FieldsHandler {
         Object.keys(this.PAGE_FIELDS).forEach(
             (dataset_id, idx) => {
                 $w('#' + dataset_id).onReady(
-                    () => BGFields.loadDataset(dataset_id)
+                    () => FieldsHandler.loadDataset(dataset_id)
                 )
             }
         )
