@@ -111,6 +111,36 @@ export class FieldsHandler {
         )
     }
 
+    /**
+     * Initialise the page FieldHandler with the fields it needs to handle.
+     *
+     * The fields data structure looks like this:
+     * {
+     *    datasetID1: {
+     *        datasetFieldId1: {
+     *            ui_id: "field1",
+     *            type: 'currency',
+     *        },
+     *        datasetFieldId2: {
+     *            ui_id: "field2",
+     *            type: 'percent',
+     *        },
+     *    },
+     *    datasetID2: {
+     *        datasetFieldId1: {
+     *            ui_id: "field1",
+     *            type: 'currency',
+     *        },
+     *        datasetFieldId2: {
+     *            ui_id: "field2",
+     *            type: 'percent',
+     *        },
+     *    },
+     *    ...
+     * }
+     *
+     * @param {object} page_fields
+     */
     static initPage(page_fields) {
         this.PAGE_FIELDS = page_fields;
         this._registerElementHandlers();
