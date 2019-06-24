@@ -15,16 +15,16 @@
 *
 * Simple usage example for four fields across two datasets:
 *
-*   import {FieldsHandler, Dataset, Field} from "public/fields";
+*   import {FieldsHandler, Dataset, CurrencyField, PercentField} from "public/fields";
 *
 *   const CUSTOM_PAGE_FIELDS = [
 *       new Dataset("wixDatasetID_1", [
-*           new Field("wixFieldID_1", "HTMLFieldID_1", "currency"),
-*           new Field("wixFieldID_2", "HTMLFieldID_2", "percent"),
+*           new CurrencyField("wixFieldID_1", "HTMLFieldID_1"),
+*           new PercentField("wixFieldID_2", "HTMLFieldID_2"),
 *       ]),
 *       new Dataset("wixDatasetID_2", [
-*           new Field("wixFieldID_3", "HTMLFieldID_3", "currency"),
-*           new Field("wixFieldID_4", "HTMLFieldID_4", "percent"),
+*           new CurrencyField("wixFieldID_3", "HTMLFieldID_3", 0, 0),
+*           new PercentField("wixFieldID_4", "HTMLFieldID_4", 0, 0),
 *       ]),
 *   ];
 *
@@ -48,53 +48,13 @@
 import * as _ from "lodash";
 
 
-/* Data readers and writers */
+/* Data readers and writers utils */
 
-let INTLCurrencyFormatter = new Intl.NumberFormat('en-AU', {
-    style: 'currency',
-    currency: 'AUD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-});
-
-let INTLPercentFormatter = new Intl.NumberFormat('en-AU', {
-    style: 'percent',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-});
 
 function readNumber(value) {
     const num = Number(value.replace(/[^0-9.-]+/g,""));
     return isNaN(num) ? null : num;
 }
-
-function formatCurrency(value) {
-    if (typeof value === 'undefined' || value === null) {
-        return null;
-    }
-    return INTLCurrencyFormatter.format(value);
-}
-
-function formatPercent(value) {
-    if (typeof value === 'undefined' || value === null) {
-        return null;
-    }
-    return INTLPercentFormatter.format(value / 100);
-}
-
-
-/* Map readers and writers to field types */
-
-let DATA_FORMAT_HANDLERS = {
-    currency: {
-        UIReader: readNumber,
-        UIFormatter: formatCurrency,
-    },
-    percent: {
-        UIReader: readNumber,
-        UIFormatter: formatPercent,
-    }
-};
 
 
 /* Classes for describing fields/datasets and initiating our bindings */
@@ -111,6 +71,72 @@ export class Field {
         this.id = id;
         this.interfaceId = interfaceId;
         this.type = type;
+    }
+
+    read(value) {
+        return value;
+    }
+
+    format(value) {
+        return value;
+    }
+}
+
+export class CurrencyField  extends Field {
+    /**
+     * Create a CurrencyField
+     *
+     * @param {Number} minDP - the minimum number of decimal places to show
+     * @param {Number} maxDP - the maximum number of decimal places to show
+     */
+    constructor(id, interfaceId, minDP=2, maxDP=2) {
+        super(id, interfaceId, 'currency');
+        this.formatter = new Intl.NumberFormat('en-AU', {
+            style: 'currency',
+            currency: 'AUD',
+            minimumFractionDigits: minDP,
+            maximumFractionDigits: maxDP,
+        });
+    }
+
+    read(value) {
+        return readNumber(value);
+    }
+
+    format(value) {
+        if (typeof value === 'undefined' || value === null) {
+            return null;
+        }
+        return this.formatter.format(value);
+    }
+}
+
+
+export class PercentField  extends Field {
+    /**
+     * Create a PercentField
+     *
+     * @param {Number} minDP - the minimum number of decimal places to show
+     * @param {Number} maxDP - the maximum number of decimal places to show
+     */
+    constructor(id, interfaceId, minDP=2, maxDP=2) {
+        super(id, interfaceId, 'percent');
+        this.formatter = new Intl.NumberFormat('en-AU', {
+            style: 'percent',
+            minimumFractionDigits: minDP,
+            maximumFractionDigits: maxDP,
+        });
+    }
+
+    read(value) {
+        return readNumber(value);
+    }
+
+    format(value) {
+        if (typeof value === 'undefined' || value === null) {
+            return null;
+        }
+        return this.formatter.format(value / 100);
     }
 }
 
@@ -141,11 +167,9 @@ export class FieldsHandler {
      */
     static _handleFieldEdit(dataset, field, element) {
         const wixDataset = $w('#' + dataset.id);
-        const {UIReader, UIFormatter} = DATA_FORMAT_HANDLERS[field.type];
-
-        const value = UIReader(element.value);
+        const value = field.read(element.value);
         wixDataset.setFieldValue(field.id, value);
-        element.value = UIFormatter(value);
+        element.value = field.format(value);
     }
 
     /**
@@ -159,9 +183,8 @@ export class FieldsHandler {
 
         let wixData = $w('#' + dataset.id).getCurrentItem();
         for ( const field of dataset.fields ) {
-            const formatter = DATA_FORMAT_HANDLERS[field.type].UIFormatter;
             const value = wixData[field.id];
-            $w('#' + field.interfaceId).value = formatter(value);
+            $w('#' + field.interfaceId).value = field.format(value);
         }
     }
 
