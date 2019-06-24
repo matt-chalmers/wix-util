@@ -88,6 +88,7 @@ export class CurrencyField  extends Field {
      *
      * @param {Number} minDP - the minimum number of decimal places to show
      * @param {Number} maxDP - the maximum number of decimal places to show
+     * @param {string} currencyCode - set the currency for the field
      */
     constructor(id, interfaceId, minDP=2, maxDP=2, currencyCode='AUD') {
         super(id, interfaceId, 'currency');
