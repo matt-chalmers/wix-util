@@ -6,7 +6,8 @@
 // Use public files to hold utility functions that can
 // be called from multiple locations in your site's code.
 
-/* This Module allows for currency and percent format to be used in Wix Input fields.
+/* This Module allows for currency and percent format to be used in Wix Text Input
+*  fields.
 *
 * To get started you must know the IDs of your Wix dataset and their fields, as well
 * the HTML id of the fields in the UI. You can gather that information from your
@@ -16,7 +17,7 @@
 *
 *   import {FieldsHandler, Dataset, Field} from "public/fields";
 *
-*   const PAGE_FIELDS = [
+*   const CUSTOM_PAGE_FIELDS = [
 *       new Dataset("wixDatasetID_1", [
 *           new Field("wixFieldID_1", "HTMLFieldID_1", "currency"),
 *           new Field("wixFieldID_2", "HTMLFieldID_2", "percent"),
@@ -28,7 +29,7 @@
 *   ];
 *
 *   $w.onReady(function () {
-*       FieldsHandler.initPage(PAGE_FIELDS);
+*       FieldsHandler.initPage(CUSTOM_PAGE_FIELDS);
 *   });
 *
 *
