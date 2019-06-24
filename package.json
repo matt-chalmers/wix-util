@@ -17,7 +17,9 @@
     "url": "https://github.com/matt-chalmers/wix-util/issues"
   },
   "homepage": "https://github.com/matt-chalmers/wix-util#readme",
-  "dependencies": {},
+  "dependencies": {
+    "lodash": "^4.17.11"
+  },
   "devDependencies": {
     "@babel/cli": "^7.4.4",
     "@babel/core": "^7.4.5",

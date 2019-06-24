@@ -6,10 +6,48 @@
 // Use public files to hold utility functions that can
 // be called from multiple locations in your site's code.
 
-/*
-    This Module allows for currency and percent format to be used in Wix Input fields.
- */
+/* This Module allows for currency and percent format to be used in Wix Input fields.
+*
+* To get started you must know the IDs of your Wix dataset and their fields, as well
+* the HTML id of the fields in the UI. You can gather that information from your
+* Corvid editor.
+*
+* Simple usage example for four fields across two datasets:
+*
+*   import {FieldsHandler, Dataset, Field} from "public/fields";
+*
+*   const PAGE_FIELDS = [
+*       new Dataset("wixDatasetID_1", [
+*           new Field("wixFieldID_1", "HTMLFieldID_1", "currency"),
+*           new Field("wixFieldID_2", "HTMLFieldID_2", "percent"),
+*       ]),
+*       new Dataset("wixDatasetID_2", [
+*           new Field("wixFieldID_3", "HTMLFieldID_3", "currency"),
+*           new Field("wixFieldID_4", "HTMLFieldID_4", "percent"),
+*       ]),
+*   ];
+*
+*   $w.onReady(function () {
+*       FieldsHandler.initPage(PAGE_FIELDS);
+*   });
+*
+*
+* Once the page has loaded and the FieldsHandler has displayed your data, it will
+* monitor the UI element for changes and update the Wix dataset appropriately.
+*
+* BUT - if you manually call refresh() on your Wix dataset the FieldsHandler won't know
+* about it and the UI data may move out of sync with the Wix dataset. Fix this by also
+* calling FieldsHandler.loadDataset(datasetId) immediately after the refresh. Eg:
+*
+*   await $w('#' + datasetId).refresh();
+*   FieldsHandler.loadDataset(datasetId);
+*
+* */
 
+import * as _ from "lodash";
+
+
+/* Data readers and writers */
 
 let INTLCurrencyFormatter = new Intl.NumberFormat('en-AU', {
     style: 'currency',
@@ -25,7 +63,7 @@ let INTLPercentFormatter = new Intl.NumberFormat('en-AU', {
 });
 
 function readNumber(value) {
-    let num = Number(value.replace(/[^0-9.-]+/g,""));
+    const num = Number(value.replace(/[^0-9.-]+/g,""));
     return isNaN(num) ? null : num;
 }
 
@@ -43,106 +81,123 @@ function formatPercent(value) {
     return INTLPercentFormatter.format(value / 100);
 }
 
+
+/* Map readers and writers to field types */
+
 let DATA_FORMAT_HANDLERS = {
     currency: {
-        ui_reader: readNumber,
-        ui_formatter: formatCurrency,
+        UIReader: readNumber,
+        UIFormatter: formatCurrency,
     },
     percent: {
-        ui_reader: readNumber,
-        ui_formatter: formatPercent,
+        UIReader: readNumber,
+        UIFormatter: formatPercent,
     }
 };
 
 
+/* Classes for describing fields/datasets and initiating our bindings */
+
+export class Field {
+    /**
+     * Create a Field
+     *
+     * @param {string} id - the id of the field in the Wix dataset
+     * @param {string} interfaceId - the html id of the field in the Wix UI
+     * @param {string} type - the formatting type of field as either "currency" or "percent"
+     */
+    constructor(id, interfaceId, type) {
+        this.id = id;
+        this.interfaceId = interfaceId;
+        this.type = type;
+    }
+}
+
+
+export class Dataset {
+    /**
+     * Create a Dataset
+     *
+     * @param {string} id - the id of the Wix dataset
+     * @param {Field[]} fields - Array of field requiring custom formatting
+     */
+    constructor(id, fields) {
+        this.id = id;
+        this.fields = fields;
+    }
+}
+
+
 export class FieldsHandler {
 
-    static _handleFieldEdit(dataset_id, field_id, element) {
-        let dataset = $w('#' + dataset_id);
-        let type = this.PAGE_FIELDS[dataset_id][field_id].type;
-        let {ui_reader, ui_formatter} = DATA_FORMAT_HANDLERS[type];
-        let value = ui_reader(element.value);
-        dataset.setFieldValue(field_id, value);
-        element.value = ui_formatter(value);
-    }
+    /**
+     * When a field value is changed in the UI, ensure that both the UI
+     * format and dataset format are correctly applied to the new value.
+     *
+     * @param {Dataset} dataset
+     * @param {Field} field
+     * @param {WixElement} element - the UI element holding the value
+     */
+    static _handleFieldEdit(dataset, field, element) {
+        const wixDataset = $w('#' + dataset.id);
+        const {UIReader, UIFormatter} = DATA_FORMAT_HANDLERS[field.type];
 
-    static loadDataset(dataset_id) {
-        let dataset_fields = this.PAGE_FIELDS[dataset_id];
-        if (!dataset_fields) {
-            return; // dataset not registered
-        }
-        let data = $w('#' + dataset_id).getCurrentItem();
-
-        Object.entries(dataset_fields).forEach(
-            (field_entry, idx) => {
-                let [field_id, field] = field_entry;
-                let type = this.PAGE_FIELDS[dataset_id][field_id].type;
-                let formatter = DATA_FORMAT_HANDLERS[type].ui_formatter;
-
-                let value = data[field_id];
-                $w('#' + field.ui_id).value = formatter(value);
-            }
-        )
-    }
-
-    static _registerElementHandlers() {
-        Object.entries(this.PAGE_FIELDS).forEach(
-            (dataset_entry, idx) => {
-                let [dataset_id, dataset_fields] = dataset_entry;
-                Object.entries(dataset_fields).forEach(
-                    (field_entry, idx) => {
-                        let [field_id, field] = field_entry;
-                        $w('#' + field.ui_id).onChange(
-                            (event) => this._handleFieldEdit(dataset_id, field_id, event.target)
-                        )
-                    }
-                )
-            }
-        )
-    }
-
-    static _registerLoadHandlers() {
-        Object.keys(this.PAGE_FIELDS).forEach(
-            (dataset_id, idx) => {
-                $w('#' + dataset_id).onReady(
-                    () => this.loadDataset(dataset_id)
-                )
-            }
-        )
+        const value = UIReader(element.value);
+        wixDataset.setFieldValue(field.id, value);
+        element.value = UIFormatter(value);
     }
 
     /**
-     * Initialise the page FieldHandler with the fields it needs to handle.
+     * Load any registered fields for a dataset into the UI view.
      *
-     * The fields data structure looks like this:
-     * {
-     *    datasetID1: {
-     *        datasetFieldId1: {
-     *            ui_id: "field1",
-     *            type: 'currency',
-     *        },
-     *        datasetFieldId2: {
-     *            ui_id: "field2",
-     *            type: 'percent',
-     *        },
-     *    },
-     *    datasetID2: {
-     *        datasetFieldId1: {
-     *            ui_id: "field1",
-     *            type: 'currency',
-     *        },
-     *        datasetFieldId2: {
-     *            ui_id: "field2",
-     *            type: 'percent',
-     *        },
-     *    },
-     *    ...
-     * }
-     *
-     * @param {object} page_fields
+     * @param {Number} datasetId
      */
-    static initPage(page_fields) {
-        this.PAGE_FIELDS = page_fields;
+    static loadDataset(datasetId) {
+        const dataset = this.PAGE_FIELDS[datasetId];
+        if (!dataset.fields) { return; }
+
+        let wixData = $w('#' + dataset.id).getCurrentItem();
+        for ( const field of dataset.fields ) {
+            const formatter = DATA_FORMAT_HANDLERS[field.type].UIFormatter;
+            const value = wixData[field.id];
+            $w('#' + field.interfaceId).value = formatter(value);
+        }
+    }
+
+    /**
+     * Register event handlers for when values are change in the UI
+     */
+    static _registerElementHandlers() {
+        Object.values(this.PAGE_FIELDS).forEach((dataset, idx) => {
+            dataset.fields.forEach((field, idx) => {
+                $w('#' + field.interfaceId).onChange(
+                    (event) => this._handleFieldEdit(dataset, field, event.target)
+                )
+            });
+        });
+    }
+
+    /**
+     * Register event handlers for when datasets become ready to load into the UI
+     */
+    static _registerLoadHandlers() {
+        Object.values(this.PAGE_FIELDS).forEach((dataset, idx) => {
+            $w('#' + dataset.id).onReady(
+                () => this.loadDataset(dataset.id)
+            )
+        });
+    }
+
+    /**
+     * This is the main entry point for a page to initiate field handling.
+     *
+     * Initialise the page FieldHandler with the datasets it needs to handle
+     * and register all event handlers for the datasets and their fields.
+     *
+     * @param {Dataset[]} datasets
+     */
+    static initPage(datasets) {
+        this.PAGE_FIELDS = _.keyBy(datasets, 'id');
         this._registerElementHandlers();
         this._registerLoadHandlers();
     }
