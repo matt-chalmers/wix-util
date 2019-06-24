@@ -9,6 +9,8 @@
 /* This Module allows for currency and percent format to be used in Wix Text Input
 *  fields.
 *
+* Dependencies: Requires lodash, which you can install to your Wix site using Corvid.
+*
 * To get started you must know the IDs of your Wix dataset and their fields, as well
 * the HTML id of the fields in the UI. You can gather that information from your
 * Corvid editor.
